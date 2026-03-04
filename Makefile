@@ -199,7 +199,7 @@ endif
 # Build Info:
 # OPENSBI_BUILD_TIME_STAMP -- the compilation time stamp
 # OPENSBI_BUILD_COMPILER_VERSION -- the compiler version info
-BUILD_INFO ?= n
+BUILD_INFO ?= y
 ifeq ($(BUILD_INFO),y)
 OPENSBI_BUILD_DATE_FMT = +%Y-%m-%d %H:%M:%S %z
 ifdef SOURCE_DATE_EPOCH
