@@ -432,6 +432,9 @@ else
 CFLAGS		+=	-O2
 endif
 
+# Tensordyne:  Default is to run simulations (remove delays, console IO).  Uncomment the following when not simulating:
+# CFLAGS		+= -DNOT_SIM
+
 # Setup functions for compilation
 define dynamic_flags
 -I$(shell dirname $(2)) -D__OBJNAME__=$(subst -,_,$(shell basename $(1) .o))

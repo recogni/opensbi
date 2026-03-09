@@ -73,17 +73,23 @@ static void set_reg(u32 num, u32 val)
 
 static void uart8250_putc(char ch)
 {
+#ifdef NOT_SIM
 	while ((get_reg(UART_LSR_OFFSET) & UART_LSR_THRE) == 0)
 		;
 
 	set_reg(UART_THR_OFFSET, ch);
+#endif
 }
 
 static int uart8250_getc(void)
 {
+#ifdef NOT_SIM
 	if (get_reg(UART_LSR_OFFSET) & UART_LSR_DR)
 		return get_reg(UART_RBR_OFFSET);
 	return -1;
+#else
+    return 0x61; // 'a'
+#endif
 }
 
 static struct sbi_console_device uart8250_console = {

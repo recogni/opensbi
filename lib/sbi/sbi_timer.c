@@ -44,14 +44,17 @@ static u64 get_ticks(void)
 }
 #endif
 
+#ifdef NOT_SIM
 static void nop_delay_fn(void *opaque)
 {
 	cpu_relax();
 }
+#endif
 
 void sbi_timer_delay_loop(ulong units, u64 unit_freq,
 			  void (*delay_fn)(void *), void *opaque)
 {
+#ifdef NOT_SIM
 	u64 start_val, delta;
 
 	/* Do nothing if we don't have timer device */
@@ -74,6 +77,7 @@ void sbi_timer_delay_loop(ulong units, u64 unit_freq,
 	/* Busy loop until desired timer value delta reached */
 	while ((get_time_val() - start_val) < delta)
 		delay_fn(opaque);
+#endif
 }
 
 bool sbi_timer_waitms_until(bool (*predicate)(void *), void *arg,
