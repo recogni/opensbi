@@ -27,6 +27,10 @@ static bool domain_finalized = false;
 #define ROOT_REGION_MAX	32
 static u32 root_memregs_count = 0;
 
+#ifdef CONFIG_PLATFORM_ESWIN
+static struct sbi_domain_memregion root_hole_region;
+#endif
+
 struct sbi_domain root = {
 	.name = "root",
 	.possible_harts = NULL,
@@ -93,10 +97,21 @@ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
 	return ret;
 }
 
+#ifdef CONFIG_PLATFORM_ESWIN
+static void domain_memregion_inithole(struct sbi_domain_memregion *reg)
+{
+       if (!reg)
+               return;
+
+       sbi_memcpy(reg, &root_hole_region, sizeof(*reg));
+}
+#endif
+
 void sbi_domain_memregion_init(unsigned long addr,
 				unsigned long size,
 				unsigned long flags,
-				struct sbi_domain_memregion *reg)
+				struct sbi_domain_memregion *reg,
+				unsigned long tor)
 {
 	unsigned long base = 0, order;
 
@@ -119,6 +134,7 @@ void sbi_domain_memregion_init(unsigned long addr,
 		reg->base = base;
 		reg->order = order;
 		reg->flags = flags;
+		reg->tor = tor;
 	}
 }
 
@@ -453,8 +469,12 @@ void sbi_domain_dump(const struct sbi_domain *dom, const char *suffix)
 	i = 0;
 	sbi_domain_for_each_memregion(dom, reg) {
 		rstart = reg->base;
-		rend = (reg->order < __riscv_xlen) ?
-			rstart + ((1UL << reg->order) - 1) : -1UL;
+		if (!reg->tor) {
+			rend = (reg->order < __riscv_xlen) ?
+				rstart + ((1UL << reg->order) - 1) : -1UL;
+		}else{
+			rend = rstart + reg->tor - 1;
+		}
 
 		sbi_printf("Domain%d Region%02d    %s: 0x%" PRILX "-0x%" PRILX " ",
 			   dom->index, i, suffix, rstart, rend);
@@ -675,7 +695,7 @@ int sbi_domain_root_add_memrange(unsigned long addr, unsigned long size,
 			rsize = ((end - pos) < align) ?
 				(end - pos) : align;
 
-		sbi_domain_memregion_init(pos, rsize, region_flags, &reg);
+		sbi_domain_memregion_init(pos, rsize, region_flags, &reg,0);
 		rc = root_add_memregion(&reg);
 		if (rc)
 			return rc;
@@ -805,13 +825,23 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
 	sbi_domain_memregion_init(scratch->fw_start, scratch->fw_rw_offset,
 				  (SBI_DOMAIN_MEMREGION_M_READABLE |
 				   SBI_DOMAIN_MEMREGION_M_EXECUTABLE),
-				  &root_memregs[root_memregs_count++]);
+				  &root_memregs[root_memregs_count++],0);
 
 	sbi_domain_memregion_init((scratch->fw_start + scratch->fw_rw_offset),
 				  (scratch->fw_size - scratch->fw_rw_offset),
 				  (SBI_DOMAIN_MEMREGION_M_READABLE |
 				   SBI_DOMAIN_MEMREGION_M_WRITABLE),
-				  &root_memregs[root_memregs_count++]);
+				  &root_memregs[root_memregs_count++],0);
+
+#ifdef CONFIG_PLATFORM_ESWIN
+	sbi_domain_memregion_init(0x20000000UL, 0x1fffffffUL, SBI_DOMAIN_MEMREGION_ENF_PERMISSIONS,
+				&root_hole_region,0);
+	domain_memregion_inithole(&root_memregs[root_memregs_count++]);
+
+	sbi_domain_memregion_init(0x1000000000UL, 0x3fffffUL, SBI_DOMAIN_MEMREGION_ENF_PERMISSIONS,
+				&root_hole_region,0x7000000000UL);
+	domain_memregion_inithole(&root_memregs[root_memregs_count++]);
+#endif
 
 	root.fw_region_inited = true;
 
@@ -826,7 +856,7 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
 				  (SBI_DOMAIN_MEMREGION_SU_READABLE |
 				   SBI_DOMAIN_MEMREGION_SU_WRITABLE |
 				   SBI_DOMAIN_MEMREGION_SU_EXECUTABLE),
-				  &root_memregs[root_memregs_count++]);
+				  &root_memregs[root_memregs_count++],0);
 
 	/* Root domain memory region end */
 	root_memregs[root_memregs_count].order = 0;

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: BSD-2-Clause
+
+config PLATFORM_ESWIN
+	bool
+	select FDT
+	select FDT_DOMAIN
+	select FDT_PMU
+	default y
+
+config PLATFORM_GENERIC_NAME
+	string "Platform default name"
+	default "ESWIN EIC770x"
+
+config PLATFORM_GENERIC_MAJOR_VER
+	int "Platform major version"
+	range 0 65535
+	default 0
+
+config PLATFORM_GENERIC_MINOR_VER
+	int "Platform minor version"
+	range 0 65535
+	default 1
+
+source "$(OPENSBI_SRC_DIR)/platform/generic/andes/Kconfig"
+source "$(OPENSBI_SRC_DIR)/platform/generic/thead/Kconfig"

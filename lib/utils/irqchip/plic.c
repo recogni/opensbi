@@ -222,7 +222,10 @@ static int plic_warm_irqchip_init(struct sbi_irqchip_device *dev)
 
 int plic_cold_irqchip_init(struct plic_data *plic)
 {
-	int i, ret;
+	int i;
+#ifndef CONFIG_PLATFORM_ESWIN
+	int ret;
+#endif
 
 	if (!plic)
 		return SBI_EINVAL;
@@ -264,11 +267,13 @@ int plic_cold_irqchip_init(struct plic_data *plic)
 
 	plic_delegate(plic);
 
+#ifndef CONFIG_PLATFORM_ESWIN
 	ret = sbi_domain_root_add_memrange(plic->addr, plic->size, BIT(20),
 					(SBI_DOMAIN_MEMREGION_MMIO |
 					 SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW));
 	if (ret)
 		return ret;
+#endif
 
 	for (u32 i = 0; i <= sbi_scratch_last_hartindex(); i++) {
 		if (plic->context_map[i][PLIC_M_CONTEXT] < 0 &&

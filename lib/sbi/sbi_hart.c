@@ -23,6 +23,7 @@
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_trap.h>
 #include <sbi/sbi_hfence.h>
+#include <sbi/riscv_io.h>
 
 extern void __sbi_expected_trap(void);
 extern void __sbi_expected_trap_hext(void);
@@ -287,6 +288,67 @@ unsigned int sbi_hart_mhpm_bits(struct sbi_scratch *scratch)
 	return hfeatures->mhpm_bits;
 }
 
+int pmp_set_tor(unsigned int n, unsigned long prot, unsigned long addr_start, unsigned long addr_end)
+{
+	/* PMP addresses are 4-byte aligned, drop the bottom two bits */
+	unsigned long protected_start = ((size_t) addr_start)>>2;
+	unsigned long protected_end = ((size_t) addr_end)>>2;
+	unsigned long cfgmask = 0xffff, pmpcfg;
+	int pmpcfg_csr, pmpcfg_shift, pmpaddr_csr;
+#define NAPOT_SIZE 4096
+	/* Clear the bit corresponding with alignment */
+	protected_start &= ~(NAPOT_SIZE >> 3);
+	protected_end &= ~(NAPOT_SIZE >> 3);
+
+	/* start region */
+#if __riscv_xlen == 32
+	pmpcfg_csr   = CSR_PMPCFG0 + (n >> 2);
+	pmpcfg_shift = (n & 3) << 3;
+#elif __riscv_xlen == 64
+	pmpcfg_csr   = (CSR_PMPCFG0 + (n >> 2)) & ~1;
+	pmpcfg_shift = (n & 7) << 3;
+#else
+	return SBI_ENOTSUPP;
+#endif
+	pmpaddr_csr = CSR_PMPADDR0 + n;
+
+	/* encode PMP config */
+	prot &= ~PMP_A;
+	cfgmask = ~(0xffUL << pmpcfg_shift);
+	pmpcfg  = (csr_read_num(pmpcfg_csr) & cfgmask);
+	pmpcfg |= ((prot << pmpcfg_shift) & ~cfgmask);
+
+	/* write csrs */
+	csr_write_num(pmpaddr_csr, protected_start);
+	csr_write_num(pmpcfg_csr, pmpcfg);
+
+	/* end region */
+	n++;
+#if __riscv_xlen == 32
+	pmpcfg_csr   = CSR_PMPCFG0 + (n >> 2);
+	pmpcfg_shift = (n & 3) << 3;
+#elif __riscv_xlen == 64
+	pmpcfg_csr   = (CSR_PMPCFG0 + (n >> 2)) & ~1;
+	pmpcfg_shift = (n & 7) << 3;
+#else
+	return SBI_ENOTSUPP;
+#endif
+	pmpaddr_csr = CSR_PMPADDR0 + n;
+
+	/* encode PMP config */
+	prot &= ~PMP_A;
+	prot |= PMP_A_TOR;
+	cfgmask = ~(0xffUL << pmpcfg_shift);
+	pmpcfg  = (csr_read_num(pmpcfg_csr) & cfgmask);
+	pmpcfg |= ((prot << pmpcfg_shift) & ~cfgmask);
+
+	/* write csrs */
+	csr_write_num(pmpaddr_csr, protected_end);
+	csr_write_num(pmpcfg_csr, pmpcfg);
+
+	return 0;
+}
+
 /*
  * Returns Smepmp flags for a given domain and region based on permissions.
  */
@@ -358,15 +420,19 @@ static void sbi_hart_smepmp_set(struct sbi_scratch *scratch,
 				unsigned int pmp_log2gran,
 				unsigned long pmp_addr_max)
 {
-	unsigned long pmp_addr = reg->base >> PMP_SHIFT;
 
-	if (pmp_log2gran <= reg->order && pmp_addr < pmp_addr_max) {
-		pmp_set(pmp_idx, pmp_flags, reg->base, reg->order);
+	if (!reg->tor) {
+		unsigned long pmp_addr = reg->base >> PMP_SHIFT;
+		if (pmp_log2gran <= reg->order && pmp_addr < pmp_addr_max)
+			pmp_set(pmp_idx++, pmp_flags, reg->base, reg->order);
+		else {
+			sbi_printf("Can not configure pmp for domain %s", dom->name);
+			sbi_printf(" because memory region address %lx or size %lx is not in range\n",
+				reg->base, reg->order);
+		}
 	} else {
-		sbi_printf("Can not configure pmp for domain %s because"
-			   " memory region address 0x%lx or size 0x%lx "
-			   "is not in range.\n", dom->name, reg->base,
-			   reg->order);
+		pmp_set_tor(pmp_idx, pmp_flags, reg->base, reg->base+reg->tor);
+		pmp_idx+=2;
 	}
 }
 
@@ -476,14 +542,19 @@ static int sbi_hart_oldpmp_configure(struct sbi_scratch *scratch,
 		if (reg->flags & SBI_DOMAIN_MEMREGION_SU_EXECUTABLE)
 			pmp_flags |= PMP_X;
 
-		pmp_addr = reg->base >> PMP_SHIFT;
-		if (pmp_log2gran <= reg->order && pmp_addr < pmp_addr_max) {
-			pmp_set(pmp_idx++, pmp_flags, reg->base, reg->order);
+		if (!reg->tor) {
+			pmp_addr =  reg->base >> PMP_SHIFT;
+			if (pmp_log2gran <= reg->order && pmp_addr < pmp_addr_max)
+				pmp_set(pmp_idx++, pmp_flags, reg->base, reg->order);
+			else {
+				sbi_printf("Can not configure pmp for domain %s", dom->name);
+				sbi_printf(" because memory region address %lx or size %lx is not in range\n",
+					reg->base, reg->order);
+			}
 		} else {
-			sbi_printf("Can not configure pmp for domain %s because"
-				   " memory region address 0x%lx or size 0x%lx "
-				   "is not in range.\n", dom->name, reg->base,
-				   reg->order);
+			pmp_addr =  reg->base;
+			pmp_set_tor(pmp_idx, pmp_flags, reg->base, reg->base+reg->tor);
+			pmp_idx+=2;
 		}
 	}
 
@@ -577,6 +648,30 @@ int sbi_hart_pmp_configure(struct sbi_scratch *scratch)
 
 	return rc;
 }
+
+#ifdef CONFIG_PLATFORM_ESWIN
+static void init_bus_blocker(void)
+{
+	#define BLOCKER_TL64D2D_OUT     (void *)0x200000
+	#define BLOCKER_TL256D2D_OUT    (void *)0x202000
+	#define BLOCKER_TL256D2D_IN     (void *)0x204000
+
+	writel(1,BLOCKER_TL64D2D_OUT);
+	writel(1,BLOCKER_TL256D2D_OUT);
+	writel(1,BLOCKER_TL256D2D_IN);
+}
+
+void sbi_configure_hart_blocker(struct sbi_scratch *scratch)
+{
+	struct sbi_domain *dom = sbi_domain_thishart_ptr();
+
+	if (dom->boot_hartid == current_hartid()) {
+		/* if only one die, need config blocker to
+		   generate fake response when access remote target */
+		init_bus_blocker();
+	}
+}
+#endif
 
 int sbi_hart_priv_version(struct sbi_scratch *scratch)
 {

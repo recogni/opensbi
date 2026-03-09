@@ -295,7 +295,7 @@ static int __fdt_parse_region(const void *fdt, int domain_offset,
 		flags |= SBI_DOMAIN_MEMREGION_MMIO;
 
 	sbi_domain_memregion_init(base, (order == __riscv_xlen) ? ~0UL : BIT(order),
-				  flags, &preg->dom->regions[preg->region_count]);
+				  flags, &preg->dom->regions[preg->region_count],0);
 
 	preg->region_count++;
 

@@ -158,6 +158,9 @@ struct sbi_domain_memregion {
 
 #define SBI_DOMAIN_MEMREGION_MMIO		(1UL << 31)
 	unsigned long flags;
+	/** region for NAPOT(0) or TOR(size) */
+	unsigned long tor;
+
 };
 
 /** Representation of OpenSBI domain */
@@ -243,11 +246,13 @@ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
  * @param size physical size of memory region
  * @param flags memory region flags
  * @param reg pointer to memory region being initialized
+ * @param tor 0:NAPOT , other:size of TOR; if use TOR mode, @size only used for region check
  */
 void sbi_domain_memregion_init(unsigned long addr,
 				unsigned long size,
 				unsigned long flags,
-				struct sbi_domain_memregion *reg);
+				struct sbi_domain_memregion *reg,
+				unsigned long tor);
 
 /**
  * Check whether we can access specified address for given mode and

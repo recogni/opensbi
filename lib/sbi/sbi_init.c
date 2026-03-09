@@ -11,6 +11,7 @@
 #include <sbi/riscv_atomic.h>
 #include <sbi/riscv_barrier.h>
 #include <sbi/sbi_console.h>
+#include <sbi/riscv_io.h>
 #include <sbi/sbi_cppc.h>
 #include <sbi/sbi_domain.h>
 #include <sbi/sbi_ecall.h>
@@ -334,6 +335,10 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
+#ifdef CONFIG_PLATFORM_ESWIN
+	sbi_configure_hart_blocker(scratch);
+#endif
+
 	/*
 	 * Note: Platform final initialization should be after finalizing
 	 * domains so that it sees correct domain assignment and PMP
@@ -440,6 +445,10 @@ static void __noreturn init_warm_startup(struct sbi_scratch *scratch,
 	if (rc)
 		sbi_hart_hang();
 
+#ifdef CONFIG_PLATFORM_ESWIN
+	sbi_configure_hart_blocker(scratch);
+#endif
+
 	rc = sbi_platform_final_init(plat, false);
 	if (rc)
 		sbi_hart_hang();
@@ -472,6 +481,10 @@ static void __noreturn init_warm_resume(struct sbi_scratch *scratch,
 	rc = sbi_hart_pmp_configure(scratch);
 	if (rc)
 		sbi_hart_hang();
+
+#ifdef CONFIG_PLATFORM_ESWIN
+	sbi_configure_hart_blocker(scratch);
+#endif
 
 	sbi_hsm_hart_resume_finish(scratch, hartid);
 }
@@ -554,6 +567,22 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 	 */
 	if (sbi_platform_nascent_init(plat))
 		sbi_hart_hang();
+
+#ifdef CONFIG_PLATFORM_ESWIN
+
+	/* disable indirect jump predictor and enable speculative icache refill */
+	csr_write(0x7C1, 0x4000);
+
+	/* Force noisy evict to send release message from any valid coherence permission state */
+	csr_write(0x7C2, 0x80);
+
+	/* Set CSR 0x7C3 to 0x104095c1be241 */
+	csr_write(0x7C3, 0x104095c1be241);
+
+	/* Set CSR 0x7C4 to 0x93FF */
+	csr_write(0x7C4, 0x93ff);
+
+#endif
 
 	if (coldboot)
 		init_coldboot(scratch, hartid);

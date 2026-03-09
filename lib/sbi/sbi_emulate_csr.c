@@ -140,6 +140,10 @@ int sbi_emulate_csr_read(int csr_num, struct sbi_trap_regs *regs,
 #undef switchcase_hpm_2
 #undef switchcase_hpm
 
+	case CSR_HENVCFG:
+		break;
+	case CSR_SENVCFG:
+		break;
 	default:
 		ret = SBI_ENOTSUPP;
 		break;
@@ -170,6 +174,10 @@ int sbi_emulate_csr_write(int csr_num, struct sbi_trap_regs *regs,
 			ret = SBI_ENOTSUPP;
 		break;
 #endif
+	case CSR_HENVCFG:
+		break;
+	case CSR_SENVCFG:
+		break;
 	default:
 		ret = SBI_ENOTSUPP;
 		break;
