@@ -3,6 +3,144 @@ RISC-V Open Source Supervisor Binary Interface (OpenSBI)
 
 ![RISC-V OpenSBI](docs/riscv_opensbi_logo_final_color.png)
 
+Tensordyne Updates
+------------------
+
+Default mode is to run in simulation mode which removes delay routines and
+getc/putc from console UART.
+
+To switch between simulation & not simulation mode see line 436 in Makefile
+which enables/disables NOT\_SIM flag.
+
+Requirements:
+-----------  
+You'll need a riscv compiler.  I am using basic prebuilt binaries from standard repo:
+```
+sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu gdb-multiarch
+```
+
+Building:
+```
+git clone -b v1.6_pyxis_sim git@github.com:recogni/opensbi.git 
+cd opensbi/
+CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make PLATFORM=eswin/eic770x
+```
+
+FYI: When changing CFLAGS between builds I find doing a
+```
+rm -rf builds
+```
+cleans up better than doing a make clean.
+
+Running
+-------
+
+I put this in premier.gdb and run 'gdb-multiarch -x premier.gdb'
+```
+define premier_load
+        set architecture riscv
+        target extended-remote localhost:3333
+
+        echo "loading opensbi"
+        load build/platform/eswin/eic770x/firmware/fw_payload.elf
+
+        add-symbol-file  build/platform/eswin/eic770x/firmware/fw_payload.elf 0x80000000
+
+        break sbi_boot_print_banner
+
+        thread apply all set $a0=$mhartid
+        thread apply all set $a1=0x88000000
+        thread apply all set $pc=0x80000000
+end
+```
+
+I put the following in openocd\_mcpu.cfg and start openocd like so:
+'~/xpack-openocd-0.12.0-6/bin/openocd -f openocd\_mcpu.cfg'
+
+```
+# JTAG adapter setup
+adapter speed 5000
+#adapter usb location 1-4.2
+
+set chain_length 5
+
+gdb_port 3333
+tcl_port 6666
+telnet_port 4444
+
+adapter driver ftdi
+
+ftdi layout_init 0x0808 0x0a1b
+ftdi layout_signal nSRST -oe 0x0200
+ftdi layout_signal nTRST -data 0x0100 -oe 0x0100
+ftdi layout_signal LED -data 0x0800
+
+ftdi vid_pid 0x0403 0x6011
+ftdi channel 0
+
+transport select jtag
+
+if { [ info exists protocol ] == 0 } {
+  # If not specified on the cmd line, default to jtag
+  set protocol jtag
+}
+
+if { [ info exists connection ] == 0 } {
+  # If not specified on the cmd line, default to probe
+  set connection probe
+}
+
+set _CHIPNAME riscv
+jtag newtap $_CHIPNAME cpu -irlen $chain_length
+
+set _TARGETNAME_0 $_CHIPNAME.cpu0
+set _TARGETNAME_1 $_CHIPNAME.cpu1
+set _TARGETNAME_2 $_CHIPNAME.cpu2
+set _TARGETNAME_3 $_CHIPNAME.cpu3
+
+target create $_TARGETNAME_0 riscv -chain-position $_CHIPNAME.cpu -coreid 0 -rtos hwthread
+target create $_TARGETNAME_1 riscv -chain-position $_CHIPNAME.cpu -coreid 1
+target create $_TARGETNAME_2 riscv -chain-position $_CHIPNAME.cpu -coreid 2
+target create $_TARGETNAME_3 riscv -chain-position $_CHIPNAME.cpu -coreid 3
+
+$_TARGETNAME_0 configure -event gdb-detach {
+    resume
+}
+$_TARGETNAME_1 configure -event gdb-detach {
+    resume
+}
+$_TARGETNAME_2 configure -event gdb-detach {
+    resume
+}
+$_TARGETNAME_3 configure -event gdb-detach {
+    resume
+}
+
+target smp $_TARGETNAME_0 $_TARGETNAME_1 $_TARGETNAME_2 $_TARGETNAME_3
+  
+$_TARGETNAME_0 configure -work-area-phys 0x80000000 -work-area-size 0x2710 -work-area-backup 1
+
+if { $chain_length == 6 } {
+  riscv use_bscan_tunnel 5
+}
+
+init
+if { [info exists authkey] } {
+  riscv authdata_write $authkey
+}
+
+if {[ info exists pulse_srst]} {
+  ftdi_set_signal nSRST 0
+  ftdi_set_signal nSRST z
+  sleep 1500
+}
+halt
+
+echo "Ready for Remote Connections"
+
+echo "wait client debug connect"
+```
+
 Copyright and License
 ---------------------
 
