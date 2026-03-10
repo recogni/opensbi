@@ -6,11 +6,10 @@ RISC-V Open Source Supervisor Binary Interface (OpenSBI)
 Tensordyne Updates
 ------------------
 
-Default mode is to run in simulation mode which removes delay routines and
-getc/putc from console UART.
+Fork of upstream opensbi with ESWIN P550 support merged in. 
 
-To switch between simulation & not simulation mode see line 436 in Makefile
-which enables/disables NOT\_SIM flag.
+It has a simulation mode which removes delay routines and getc/putc from console UART.
+To enable simulation mode, enable the -DSIMULATION flag on line 436 in Makefile.
 
 Requirements:
 -----------  
@@ -19,12 +18,17 @@ You'll need a riscv compiler.  I am using basic prebuilt binaries from standard 
 sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu gdb-multiarch
 ```
 
-Building:
+Building without a payload:
+---------------------------
+Running without specifying a payload (eg line kernel) causes opensbi to jump to a default
+test payload which simply prints a message then spinloops forever. 
 ```
 git clone -b v1.6_pyxis_sim git@github.com:recogni/opensbi.git 
 cd opensbi/
 CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make PLATFORM=eswin/eic770x
 ```
+
+The default load address (0x80000000) can be updated in platform/eswin/eic770x/objects.mk
 
 FYI: When changing CFLAGS between builds I find doing a
 ```
@@ -43,7 +47,6 @@ define premier_load
 
         echo "loading opensbi"
         load build/platform/eswin/eic770x/firmware/fw_payload.elf
-
         add-symbol-file  build/platform/eswin/eic770x/firmware/fw_payload.elf 0x80000000
 
         break sbi_boot_print_banner

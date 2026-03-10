@@ -432,8 +432,8 @@ else
 CFLAGS		+=	-O2
 endif
 
-# Tensordyne:  Default is to run simulations (remove delays, console IO).  Uncomment the following when not simulating:
-# CFLAGS		+= -DNOT_SIM
+# Tensordyne:  To run RTL simulations (remove delays, console IO, etc), enable the SIMULATION flag:
+#CFLAGS		+= -DSIMULATION
 
 # Setup functions for compilation
 define dynamic_flags

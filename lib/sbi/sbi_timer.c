@@ -44,7 +44,7 @@ static u64 get_ticks(void)
 }
 #endif
 
-#ifdef NOT_SIM
+#ifndef SIMULATION
 static void nop_delay_fn(void *opaque)
 {
 	cpu_relax();
@@ -54,7 +54,7 @@ static void nop_delay_fn(void *opaque)
 void sbi_timer_delay_loop(ulong units, u64 unit_freq,
 			  void (*delay_fn)(void *), void *opaque)
 {
-#ifdef NOT_SIM
+#ifndef SIMULATION
 	u64 start_val, delta;
 
 	/* Do nothing if we don't have timer device */

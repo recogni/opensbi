@@ -73,7 +73,7 @@ static void set_reg(u32 num, u32 val)
 
 static void uart8250_putc(char ch)
 {
-#ifdef NOT_SIM
+#ifndef SIMULATION
 	while ((get_reg(UART_LSR_OFFSET) & UART_LSR_THRE) == 0)
 		;
 
@@ -83,7 +83,7 @@ static void uart8250_putc(char ch)
 
 static int uart8250_getc(void)
 {
-#ifdef NOT_SIM
+#ifndef SIMULATION
 	if (get_reg(UART_LSR_OFFSET) & UART_LSR_DR)
 		return get_reg(UART_RBR_OFFSET);
 	return -1;
