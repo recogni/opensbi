@@ -432,8 +432,10 @@ else
 CFLAGS		+=	-O2
 endif
 
-# Tensordyne:  To run RTL simulations (remove delays, console IO, etc), enable the SIMULATION flag:
-#CFLAGS		+= -DSIMULATION
+# Tensordyne:  Remove delays, console IO, etc when building for RTL simulation.
+ifeq ($(SIMULATION),1)
+CFLAGS		+= -DSIMULATION
+endif
 
 # Setup functions for compilation
 define dynamic_flags

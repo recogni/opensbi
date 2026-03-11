@@ -9,7 +9,7 @@ Tensordyne Updates
 Fork of upstream opensbi with ESWIN P550 support merged in. 
 
 It has a simulation mode which removes delay routines and getc/putc from console UART.
-To enable simulation mode, enable the -DSIMULATION flag on line 436 in Makefile.
+To enable simulation mode, specify SIMULATION=1 on command line (eg 'make SIMULATION=1 PLATFORM=....').
 
 Requirements:
 -----------  
@@ -26,15 +26,12 @@ test payload which simply prints a message then spinloops forever.
 git clone -b v1.6_pyxis_sim git@github.com:recogni/opensbi.git 
 cd opensbi/
 CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make PLATFORM=eswin/eic770x
+# if building for RTL simulation:
+CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make SIMULATION=1 PLATFORM=eswin/eic770x
 ```
 
-The default load address (0x80000000) can be updated in platform/eswin/eic770x/objects.mk
-
-FYI: When changing CFLAGS between builds I find doing a
-```
-rm -rf builds
-```
-cleans up better than doing a make clean.
+The default load address (0x80000000) can be specified either by updating in platform/eswin/eic770x/objects.mk or
+specifiying  FW_TEXT_START=0x.... on the command line.
 
 Running
 -------
