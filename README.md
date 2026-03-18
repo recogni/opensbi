@@ -8,6 +8,8 @@ Tensordyne Updates
 
 Fork of upstream opensbi with ESWIN P550 support merged in. 
 
+Cloned the eswin platform code into 'td/pyxis' so we can define our own pyxis chip.
+
 It has a simulation mode which removes delay routines and getc/putc from console UART.
 To enable simulation mode, specify SIMULATION=1 on command line (eg 'make SIMULATION=1 PLATFORM=....').
 
@@ -22,29 +24,32 @@ Building without a payload:
 ---------------------------
 Running without specifying a payload (eg line kernel) causes opensbi to jump to a default
 test payload which simply prints a message then spinloops forever. 
+
+When building for eswin, specify PLATFORM=eswin/eic770x
+When building for Pyxis, specify PLATFORM=td/pyxis
 ```
 git clone -b v1.6_pyxis_sim git@github.com:recogni/opensbi.git 
 cd opensbi/
-CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make PLATFORM=eswin/eic770x
+CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make PLATFORM=td/pyxis
 # if building for RTL simulation:
-CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make SIMULATION=1 PLATFORM=eswin/eic770x
+CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make SIMULATION=1 PLATFORM=td/pyxis
 ```
 
-The default load address (0x80000000) can be specified either by updating in platform/eswin/eic770x/objects.mk or
+The default load address (0x80000000) can be specified either by updating in platform/td/pyxis/objects.mk or
 specifiying  FW_TEXT_START=0x.... on the command line.
 
 Running
 -------
 
-I put this in premier.gdb and run 'gdb-multiarch -x premier.gdb'
+I put this in pyxis.gdb and run 'gdb-multiarch -x pyxis.gdb'
 ```
-define premier_load
+define pyxis_load
         set architecture riscv
         target extended-remote localhost:3333
 
         echo "loading opensbi"
-        load build/platform/eswin/eic770x/firmware/fw_payload.elf
-        add-symbol-file  build/platform/eswin/eic770x/firmware/fw_payload.elf 0x80000000
+        load build/platform/td/pyxis/firmware/fw_payload.elf
+        add-symbol-file  build/platform/td/pyxis/firmware/fw_payload.elf 0x80000000
 
         break sbi_boot_print_banner
 
@@ -60,7 +65,6 @@ I put the following in openocd\_mcpu.cfg and start openocd like so:
 ```
 # JTAG adapter setup
 adapter speed 5000
-#adapter usb location 1-4.2
 
 set chain_length 5
 

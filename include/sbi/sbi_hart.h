@@ -132,7 +132,7 @@ unsigned int sbi_hart_pmp_log2gran(struct sbi_scratch *scratch);
 unsigned int sbi_hart_pmp_addrbits(struct sbi_scratch *scratch);
 unsigned int sbi_hart_mhpm_bits(struct sbi_scratch *scratch);
 int sbi_hart_pmp_configure(struct sbi_scratch *scratch);
-#ifdef CONFIG_PLATFORM_ESWIN
+#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
 void sbi_configure_hart_blocker(struct sbi_scratch *scratch);
 #endif
 int sbi_hart_map_saddr(unsigned long base, unsigned long size);

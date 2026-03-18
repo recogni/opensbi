@@ -335,7 +335,7 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-#ifdef CONFIG_PLATFORM_ESWIN
+#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
 	sbi_configure_hart_blocker(scratch);
 #endif
 
@@ -445,7 +445,7 @@ static void __noreturn init_warm_startup(struct sbi_scratch *scratch,
 	if (rc)
 		sbi_hart_hang();
 
-#ifdef CONFIG_PLATFORM_ESWIN
+#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
 	sbi_configure_hart_blocker(scratch);
 #endif
 
@@ -482,7 +482,7 @@ static void __noreturn init_warm_resume(struct sbi_scratch *scratch,
 	if (rc)
 		sbi_hart_hang();
 
-#ifdef CONFIG_PLATFORM_ESWIN
+#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
 	sbi_configure_hart_blocker(scratch);
 #endif
 
@@ -568,7 +568,7 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
 	if (sbi_platform_nascent_init(plat))
 		sbi_hart_hang();
 
-#ifdef CONFIG_PLATFORM_ESWIN
+#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
 
 	/* disable indirect jump predictor and enable speculative icache refill */
 	csr_write(0x7C1, 0x4000);

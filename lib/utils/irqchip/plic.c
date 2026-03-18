@@ -223,7 +223,7 @@ static int plic_warm_irqchip_init(struct sbi_irqchip_device *dev)
 int plic_cold_irqchip_init(struct plic_data *plic)
 {
 	int i;
-#ifndef CONFIG_PLATFORM_ESWIN
+#if !defined(CONFIG_PLATFORM_ESWIN) && !defined(CONFIG_PLATFORM_TENSORDYNE)
 	int ret;
 #endif
 
@@ -267,7 +267,7 @@ int plic_cold_irqchip_init(struct plic_data *plic)
 
 	plic_delegate(plic);
 
-#ifndef CONFIG_PLATFORM_ESWIN
+#if !defined(CONFIG_PLATFORM_ESWIN) && !defined(CONFIG_PLATFORM_TENSORDYNE)
 	ret = sbi_domain_root_add_memrange(plic->addr, plic->size, BIT(20),
 					(SBI_DOMAIN_MEMREGION_MMIO |
 					 SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW));
