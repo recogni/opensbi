@@ -9,7 +9,7 @@
 #
 
 platform-objs-$(CONFIG_PLATFORM_TENSORDYNE) += platform.o
-platform-objs-y += eic770x_uart.o
+#platform-objs-y += eic770x_uart.o
 
 # Compiler flags
 platform-cppflags-y =

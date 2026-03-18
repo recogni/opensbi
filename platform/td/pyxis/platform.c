@@ -28,7 +28,6 @@
 #include <sbi/riscv_asm.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi/sbi_hart.h>
-#include "eic770x_uart.h"
 
 /* clang-format off */
 #define EIC770X_HART_COUNT				4
@@ -135,30 +134,13 @@ static int eic770x_system_reset_check(u32 type, u32 reason)
 /* tell stm32 on the carrier to shut down the power */
 static int eic770x_core_shutdown(void)
 {
-	Message shutdown_reply = {
-		.header = FRAME_HEADER,
-		.msg_type = MSG_NOTIFY,
-		.cmd_type = CMD_POWER_OFF,
-		.data_len = 0x0,
-		.tail = FRAME_TAIL,
-	};
 	sbi_printf("%s\n", __func__);
-	transmit_message(&shutdown_reply);
 	return 0;
 }
 
 static int eic770x_cold_reset(void)
 {
-	Message shutdown_reply = {
-		.header = FRAME_HEADER,
-		.msg_type = MSG_NOTIFY,
-		.cmd_type = CMD_RESTART,
-		.data_len = 0x0,
-		.tail = FRAME_TAIL,
-	};
 	sbi_printf("%s\n", __func__);
-	transmit_message(&shutdown_reply);
-	sbi_timer_mdelay(3000);
 	/*When it is not a DVB board, reboot can still be done, but there is no real power off/power on action at that time.*/
 	writel(EIC770X_SYS_RESET_VALUE, (volatile void *)EIC770X_SYS_RESET_ADDR);
 	return 0;
@@ -193,20 +175,6 @@ static struct sbi_system_reset_device eic770x_reset = {
 	.system_reset_check = eic770x_system_reset_check,
 	.system_reset = eic770x_system_reset
 };
-
-/* UART2 is used for communication with stm32 on the carrier board of DVB */
-int eic770x_uart2_init()
-{
-	/*reset uart2*/
-	writeb(0x1B, (volatile void *)EIC770X_UART_RESET_ADDR);
-	writeb(0x1F, (volatile void *)EIC770X_UART_RESET_ADDR);
-	return eic770x_uart8250_init(EIC770X_UART2_ADDR,
-			EIC770X_UART_CLK,
-			EIC770X_UART_BAUDRATE,
-			0x2,
-			0x2);
-
-}
 
 static int eic770x_early_init(bool cold_boot)
 {
