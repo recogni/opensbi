@@ -25,18 +25,21 @@ Building without a payload:
 Running without specifying a payload (eg line kernel) causes opensbi to jump to a default
 test payload which simply prints a message then spinloops forever. 
 
-When building for eswin, specify PLATFORM=eswin/eic770x
-When building for Pyxis, specify PLATFORM=td/pyxis
+- When building for eswin, specify PLATFORM=eswin/eic770x
+- When building for Pyxis, specify PLATFORM=td/pyxis
 ```
 git clone -b v1.6_pyxis_sim git@github.com:recogni/opensbi.git 
 cd opensbi/
 CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make PLATFORM=td/pyxis
+
 # if building for RTL simulation:
 CROSS_COMPILE=riscv64-linux-gnu- PLATFORM_RISCV_XLEN=64 make SIMULATION=1 PLATFORM=td/pyxis
 ```
 
+Enabling SIMULATION mode removes console output and delay loops due to the excessive time those would take under simulation.
+
 The default load address (0x80000000) can be specified either by updating in platform/td/pyxis/objects.mk or
-specifiying  FW_TEXT_START=0x.... on the command line.
+specifiying  'make FW_TEXT_START=0x....' on the command line.
 
 Running
 -------
