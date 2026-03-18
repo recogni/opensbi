@@ -30,7 +30,7 @@
 #include <sbi/sbi_hart.h>
 
 /* clang-format off */
-#define EIC770X_HART_COUNT				4
+#define EIC770X_HART_COUNT				16
 #define DIE_REG_OFFSET					0
 
 #define EIC770X_ACLINT_MSWI_ADDR			0x2000000
@@ -45,7 +45,6 @@
 
 #define EIC770X_UART_BAUDRATE				115200
 #define EIC770X_UART0_ADDR				(0x50900000UL + DIE_REG_OFFSET)
-#define EIC770X_UART2_ADDR				(0x50920000UL + DIE_REG_OFFSET)
 #define EIC770X_UART_RESET_ADDR			(0x51828434UL + DIE_REG_OFFSET)
 
 #define EIC770X_UART_CLK				(200000000UL)
@@ -110,6 +109,18 @@ static u32 eic770x_hart_index2id[EIC770X_HART_COUNT] = {
 	[1] = 1,
 	[2] = 2,
 	[3] = 3,
+	[4] = 4,
+	[5] = 5,
+	[6] = 6,
+	[7] = 7,
+	[8] = 8,
+	[9] = 9,
+	[10] = 10,
+	[11] = 11,
+	[12] = 12,
+	[13] = 13,
+	[14] = 14,
+	[15] = 15,
 };
 
 static void eic770x_modify_dt(void *fdt)
