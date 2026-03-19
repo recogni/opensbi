@@ -189,25 +189,8 @@ static struct sbi_system_reset_device eic770x_reset = {
 
 static int eic770x_early_init(bool cold_boot)
 {
-	int ret;
-	u32 bdiv_f, base_baud;
-
 	if (cold_boot)
 		sbi_system_reset_add_device(&eic770x_reset);
-
-	ret =  uart8250_init(EIC770X_UART0_ADDR,
-			EIC770X_UART_CLK,
-			EIC770X_UART_BAUDRATE,
-			0x2,
-			0x2,0);
-	if (ret<0)
-		return ret;
-
-	base_baud = EIC770X_UART_BAUDRATE * 16;
-	bdiv_f = EIC770X_UART_CLK % base_baud;
-	bdiv_f = DIV_ROUND_CLOSEST(bdiv_f << 0x4, base_baud);
-
-	writew(bdiv_f, ((volatile char *)EIC770X_UART0_ADDR + (UART_DLF_OFFSET << 2)));
 
 	return 0;
 }
