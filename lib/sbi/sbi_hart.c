@@ -649,7 +649,7 @@ int sbi_hart_pmp_configure(struct sbi_scratch *scratch)
 	return rc;
 }
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 static void init_bus_blocker(void)
 {
 	#define BLOCKER_TL64D2D_OUT     (void *)0x200000

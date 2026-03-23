@@ -78,7 +78,7 @@
 }   \
 )
 
-static struct plic_data plic = {
+__attribute__((unused)) static struct plic_data plic = {
 	.addr = EIC770X_PLIC_ADDR,
 	.size =	EIC770X_PLIC_SIZE,
 	.num_src = EIC770X_PLIC_NUM_SOURCES,
@@ -125,9 +125,9 @@ static u32 eic770x_hart_index2id[EIC770X_HART_COUNT] = {
 
 static void eic770x_modify_dt(void *fdt)
 {
-	fdt_cpu_fixup(fdt);
+	// fdt_cpu_fixup(fdt);
 
-	fdt_fixups(fdt);
+	// fdt_fixups(fdt);
 }
 
 static int eic770x_system_reset_check(u32 type, u32 reason)
@@ -182,7 +182,7 @@ static void eic770x_system_reset(u32 type, u32 reason)
 }
 
 static struct sbi_system_reset_device eic770x_reset = {
-	.name = "eswin_eic770x_reset",
+	.name = "td_pyxis_reset",
 	.system_reset_check = eic770x_system_reset_check,
 	.system_reset = eic770x_system_reset
 };
@@ -210,7 +210,8 @@ static int eic770x_final_init(bool cold_boot)
 
 static int eic770x_irqchip_init(void)
 {
-	return plic_cold_irqchip_init(&plic);
+	return 0;
+	//return plic_cold_irqchip_init(&plic);
 }
 
 static int eic770x_ipi_init(void)

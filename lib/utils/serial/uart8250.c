@@ -141,7 +141,7 @@ int uart8250_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
 
 	sbi_console_set_device(&uart8250_console);
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 	/* For now, not adding memrange for UART as we are short of PMP regions */
 	return 0;
 #else

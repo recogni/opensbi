@@ -335,7 +335,7 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 	sbi_configure_hart_blocker(scratch);
 #endif
 
@@ -445,7 +445,7 @@ static void __noreturn init_warm_startup(struct sbi_scratch *scratch,
 	if (rc)
 		sbi_hart_hang();
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 	sbi_configure_hart_blocker(scratch);
 #endif
 
@@ -482,7 +482,7 @@ static void __noreturn init_warm_resume(struct sbi_scratch *scratch,
 	if (rc)
 		sbi_hart_hang();
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 	sbi_configure_hart_blocker(scratch);
 #endif
 
