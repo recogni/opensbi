@@ -27,7 +27,7 @@ static bool domain_finalized = false;
 #define ROOT_REGION_MAX	32
 static u32 root_memregs_count = 0;
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 static struct sbi_domain_memregion root_hole_region;
 #endif
 
@@ -97,7 +97,7 @@ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
 	return ret;
 }
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 static void domain_memregion_inithole(struct sbi_domain_memregion *reg)
 {
        if (!reg)
@@ -833,7 +833,7 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
 				   SBI_DOMAIN_MEMREGION_M_WRITABLE),
 				  &root_memregs[root_memregs_count++],0);
 
-#if defined(CONFIG_PLATFORM_ESWIN) || defined(CONFIG_PLATFORM_TENSORDYNE)
+#if defined(CONFIG_PLATFORM_ESWIN)
 	sbi_domain_memregion_init(0x20000000UL, 0x1fffffffUL, SBI_DOMAIN_MEMREGION_ENF_PERMISSIONS,
 				&root_hole_region,0);
 	domain_memregion_inithole(&root_memregs[root_memregs_count++]);
