@@ -67,7 +67,7 @@ struct sbi_ecall_extension ecall_dbcn;
 
 static int sbi_ecall_dbcn_register_extensions(void)
 {
-#if defined(CONFIG_PLATFORM_TENSORDYNE) && defined(SIMULATION)
+#if !defined(CONFIG_PLATFORM_TENSORDYNE) || !defined(SIMULATION)
 	if (!sbi_console_get_device())
 		return 0;
 #endif
