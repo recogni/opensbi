@@ -19,7 +19,7 @@
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/riscv_io.h>
-#include <sbi_utils/irqchip/plic.h>
+#include <sbi_utils/irqchip/aplic.h>
 #include <sbi_utils/serial/uart8250.h>
 #include <sbi_utils/timer/aclint_mtimer.h>
 #include <sbi_utils/ipi/aclint_mswi.h>
@@ -37,11 +37,8 @@
 #define EIC770X_ACLINT_MTIMER_ADDR			0x2000000
 #define EIC770X_ACLINT_MTIMER_FREQ			1000000
 
-#define EIC770X_PLIC_ADDR				0xc000000
-#define EIC770X_PLIC_SIZE				(0x200000 + \
-		(EIC770X_HART_COUNT * 0x1000))
-#define EIC770X_PLIC_NUM_SOURCES			520
-#define EIC770X_PLIC_NUM_PRIORITIES			7
+#define EIC770X_PLIC_ADDR				0xc004000
+#define EIC770X_PLIC_SIZE				0x4000
 
 #define EIC770X_UART_BAUDRATE				115200
 #define EIC770X_UART0_ADDR				(0x50900000UL + DIE_REG_OFFSET)
@@ -78,10 +75,14 @@
 }   \
 )
 
-__attribute__((unused)) static struct plic_data plic = {
+__attribute__((unused)) static struct aplic_data aplic = {
 	.addr = EIC770X_PLIC_ADDR,
 	.size =	EIC770X_PLIC_SIZE,
-	.num_src = EIC770X_PLIC_NUM_SOURCES,
+	.num_idc = 0,
+	.num_source = 127,
+	.targets_mmode = true,
+	.has_msicfg_mmode = false,
+	.has_msicfg_smode = false,
 };
 
 static struct aclint_mswi_data mswi = {
@@ -210,8 +211,7 @@ static int eic770x_final_init(bool cold_boot)
 
 static int eic770x_irqchip_init(void)
 {
-	return 0;
-	//return plic_cold_irqchip_init(&plic);
+	return aplic_cold_irqchip_init(&aplic);
 }
 
 static int eic770x_ipi_init(void)
