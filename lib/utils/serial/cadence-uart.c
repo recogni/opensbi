@@ -29,9 +29,12 @@
 #define UART_CTRL_TXEN		0x00000010
 #define UART_CTRL_TXDIS		0x00000020
 
+#define UART_MODE_CLKSEL	0x00000001	/* sel_clk = uart_clk / 8 */
 #define UART_MODE_PAR_NONE	0x00000020	/* No parity set */
 
-#define UART_BRGR_CD_CLKDIVISOR	0x00000001	/* baud_sample = sel_clk */
+#define UART_BDIV_MIN		4
+#define UART_BDIV_MAX		255
+#define UART_CD_MAX		65535
 
 #define	UART_CSR_REMPTY		0x00000002
 #define	UART_CSR_TFUL		0x00000010
@@ -43,19 +46,40 @@ static u32 uart_in_freq;
 static u32 uart_baudrate;
 
 /*
- * Find minimum divisor divides in_freq to max_target_hz;
- * Based on SiFive UART driver (sifive-uart.c)
+ * Find the CD (BRGR) / BDIV (BDIVR) pair giving the baud rate closest to
+ * the requested one: baud = sel_clk / (CD * (BDIV + 1)).
+ * Based on cdns_uart_calc_baud_divs() from Linux xilinx_uartps.c.
+ * Returns the achieved baud rate, or 0 if no valid divisors exist.
  */
-static inline unsigned int uart_min_clk_divisor(uint64_t in_freq,
-						uint64_t max_target_hz)
+static u32 cadence_uart_calc_baud_divs(u32 clk, u32 baud, u32 *rbdiv,
+				       u32 *rcd, bool *div8)
 {
-	uint64_t quotient = (in_freq + max_target_hz - 1) / (max_target_hz);
+	u32 cd, bdiv, den, calc_baud, err;
+	u32 best_baud = 0, best_err = ~0U;
 
-	/* Avoid underflow */
-	if (quotient == 0)
-		return 0;
-	else
-		return quotient - 1;
+	*div8 = false;
+	if (baud < clk / ((UART_BDIV_MAX + 1) * UART_CD_MAX)) {
+		*div8 = true;
+		clk /= 8;
+	}
+
+	for (bdiv = UART_BDIV_MIN; bdiv <= UART_BDIV_MAX; bdiv++) {
+		den = baud * (bdiv + 1);
+		cd = (clk + den / 2) / den;
+		if (cd < 1 || cd > UART_CD_MAX)
+			continue;
+
+		calc_baud = clk / (cd * (bdiv + 1));
+		err = calc_baud > baud ? calc_baud - baud : baud - calc_baud;
+		if (err < best_err) {
+			*rbdiv = bdiv;
+			*rcd = cd;
+			best_baud = calc_baud;
+			best_err = err;
+		}
+	}
+
+	return best_baud;
 }
 
 static u32 get_reg(u32 offset)
@@ -94,6 +118,10 @@ static struct sbi_console_device cadence_console = {
 
 int cadence_uart_init(unsigned long base, u32 in_freq, u32 baudrate)
 {
+	u32 mode = UART_MODE_PAR_NONE;
+	u32 cd, bdiv;
+	bool div8;
+
 	uart_base     = (volatile void *)base;
 	uart_in_freq  = in_freq;
 	uart_baudrate = baudrate;
@@ -105,10 +133,13 @@ int cadence_uart_init(unsigned long base, u32 in_freq, u32 baudrate)
 	set_reg(UART_REG_CTRL, UART_CTRL_TXDIS | UART_CTRL_RXDIS);
 
 	/* Configure baudrate */
-	if (in_freq && baudrate) {
-		set_reg(UART_REG_BRGR, UART_BRGR_CD_CLKDIVISOR);
-		set_reg(UART_REG_BDIVR,
-			uart_min_clk_divisor(in_freq, baudrate));
+	if (in_freq && baudrate &&
+	    cadence_uart_calc_baud_divs(in_freq, baudrate, &bdiv, &cd, &div8)) {
+		if (div8)
+			mode |= UART_MODE_CLKSEL;
+		set_reg(UART_REG_MODE, mode);
+		set_reg(UART_REG_BRGR, cd);
+		set_reg(UART_REG_BDIVR, bdiv);
 	}
 
 	/* Software reset TX RX data path and enable TX RX */
@@ -120,9 +151,9 @@ int cadence_uart_init(unsigned long base, u32 in_freq, u32 baudrate)
 	 * 1 stop bit, bits[07:06] = 0x00,
 	 * no parity set, bits[05:03] = 0x100,
 	 * 8 bits character length, bits[02:01] = 0x00,
-	 * sel_clk = uart_clk, bit[0] = 0x0
+	 * sel_clk = uart_clk or uart_clk / 8, bit[0] = CLKSEL
 	 */
-	set_reg(UART_REG_MODE, UART_MODE_PAR_NONE);
+	set_reg(UART_REG_MODE, mode);
 
 	sbi_console_set_device(&cadence_console);
 
